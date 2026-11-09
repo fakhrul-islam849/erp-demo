@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+
+{% block extra_css %}
+{% include 'partials/datatable_css.html' %}
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h4 class="card-title mb-0">Suppliers</h4>
+      <a href="{% url 'supplier:add' %}" class="btn btn-primary">
+        <i class="mdi mdi-plus"></i> Add Supplier
+      </a>
+    </div>
+    <div class="table-responsive">
+      <table id="supplier-listing" class="table app-datatable">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Phone</th>
+            <th>Email</th>
+            <th>Country</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% include 'partials/datatable_js.html' %}
+<script>
+  $(function () {
+    initServerDatatable('#supplier-listing', {
+      ajax: '{% url "supplier:datatable" %}',
+      order: [],
+      columns: [
+        { data: 'name' },
+        { data: 'phone' },
+        { data: 'email' },
+        { data: 'country' },
+        { data: 'actions', orderable: false, searchable: false },
+      ],
+    });
+  });
+</script>
+{% endblock %}

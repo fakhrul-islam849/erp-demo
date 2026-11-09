@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block extra_css %}
+{% include 'partials/datatable_css.html' %}
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h4 class="card-title mb-0">Sub-categories</h4>
+      <a href="{% url 'product:subcategory_add' %}" class="btn btn-primary">
+        <i class="mdi mdi-plus"></i> Add Sub-category
+      </a>
+    </div>
+    <div class="table-responsive">
+      <table id="subcategory-listing" class="table app-datatable">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Category</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% include 'partials/datatable_js.html' %}
+<script>
+  $(function () {
+    initServerDatatable('#subcategory-listing', {
+      ajax: '{% url "product:subcategory_datatable" %}',
+      order: [],
+      columns: [
+        { data: 'name' },
+        { data: 'category' },
+        { data: 'actions', orderable: false, searchable: false },
+      ],
+    });
+  });
+</script>
+{% endblock %}

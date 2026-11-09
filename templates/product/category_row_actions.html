@@ -1,0 +1,13 @@
+<div class="dropdown">
+  <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+    Action
+  </button>
+  <div class="dropdown-menu dropdown-menu-right">
+    <a class="dropdown-item" href="{% url 'product:category_edit' pk=category.pk %}">
+      <i class="mdi mdi-pencil"></i> Edit
+    </a>
+    <a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal" data-delete-url="{% url 'product:category_delete' pk=category.pk %}">
+      <i class="mdi mdi-delete"></i> Delete
+    </a>
+  </div>
+</div>
