@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+
+{% block extra_css %}
+{% include 'partials/datatable_css.html' %}
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h4 class="card-title mb-0">Company Pads</h4>
+      {% if request.user.user_type == 'admin' %}
+      <a href="{% url 'company_pad:pad_add' %}" class="btn btn-primary">
+        <i class="mdi mdi-plus"></i> Add Pad
+      </a>
+      {% endif %}
+    </div>
+    <div class="table-responsive">
+      <table id="pad-listing" class="table app-datatable">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Category</th>
+            <th>Party B</th>
+            <th>Status</th>
+            <th>Created</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% include 'partials/datatable_js.html' %}
+<script>
+  $(function () {
+    initServerDatatable('#pad-listing', {
+      ajax: '{% url "company_pad:pad_datatable" %}',
+      order: [],
+      columns: [
+        { data: 'title' },
+        { data: 'category' },
+        { data: 'party_b' },
+        { data: 'status' },
+        { data: 'created_at' },
+        { data: 'actions', orderable: false, searchable: false },
+      ],
+    });
+  });
+</script>
+{% endblock %}

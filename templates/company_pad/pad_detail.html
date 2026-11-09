@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+  @font-face {
+    font-family: 'Signature';
+    src: url('{% static "fonts/signature.ttf" %}');
+  }
+  .signature-name {
+    font-family: 'Signature', cursive;
+    font-size: 2rem;
+    line-height: 1.2;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <div class="text-center border-bottom pb-3 mb-3">
+      {% if pad.category %}<p class="text-muted mb-1">{{ pad.category.name }}</p>{% endif %}
+      <h3>{{ pad.title }}</h3>
+      <span class="badge bg-secondary">{{ pad.get_status_display }}</span>
+    </div>
+
+    {% if request.user.user_type == 'admin' and pad.status == 'draft' %}
+    <div class="mb-4">
+      <form method="post" action="{% url 'company_pad:pad_release' pk=pad.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-primary">Release for Signing</button>
+      </form>
+    </div>
+    {% endif %}
+
+    {% if request.user.user_type == 'admin' and pad.status == 'awaiting_signature' and not pad.signed_by_party_b_at %}
+    <div class="mb-4">
+      <form method="post" action="{% url 'company_pad:pad_revert_to_draft' pk=pad.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-outline-warning">Revert to Draft (Edit)</button>
+      </form>
+    </div>
+    {% endif %}
+
+    <div class="mb-4">{{ pad.details|safe }}</div>
+
+    {% if pad.attachment and request.user.user_type == 'admin' %}
+    <div class="mb-4">
+      <strong>Attachment:</strong>
+      <a href="{{ pad.attachment.url }}" target="_blank">{{ pad.attachment.name }}</a>
+    </div>
+    {% endif %}
+
+    <div class="row">
+      <div class="col-md-6">
+        <h6>Admin Signature</h6>
+        {% if pad.signed_by_admin_at %}
+          <p class="signature-name mb-0">{{ pad.signed_by_admin_name }}</p>
+          <p class="text-muted small">Signed on {{ pad.signed_by_admin_at|date:"Y-m-d H:i" }}</p>
+        {% elif request.user.user_type == 'admin' and pad.status == 'awaiting_signature' %}
+          <a href="{% url 'company_pad:pad_sign_admin' pk=pad.pk %}" class="btn btn-sm btn-primary">Sign as Admin</a>
+        {% else %}
+          <p class="text-muted">Not signed yet</p>
+        {% endif %}
+      </div>
+      <div class="col-md-6">
+        <h6>Party B Signature ({{ pad.party_b_display_name }})</h6>
+        {% if pad.signed_by_party_b_at %}
+          <p class="signature-name mb-0">{{ pad.signed_by_party_b_name }}</p>
+          <p class="text-muted small">Signed on {{ pad.signed_by_party_b_at|date:"Y-m-d H:i" }}</p>
+        {% elif pad.party_b_type == 'employee' and pad.party_b_employee == request.user and pad.status == 'awaiting_signature' %}
+          <a href="{% url 'company_pad:pad_sign_employee' pk=pad.pk %}" class="btn btn-sm btn-primary">Sign</a>
+        {% else %}
+          <p class="text-muted">Not signed yet</p>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if pad.final_pdf %}
+    <div class="mt-3">
+      <a href="{{ pad.final_pdf.url }}" class="btn btn-success" target="_blank">
+        <i class="mdi mdi-download"></i> Download Signed PDF
+      </a>
+    </div>
+    {% endif %}
+
+    {% if request.user.user_type == 'admin' %}
+    <div class="mt-4 border-top pt-3">
+      <h6>Share Link</h6>
+      <form method="post" action="{% url 'company_pad:pad_generate_share_link' pk=pad.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-sm btn-outline-primary mb-2">Generate Share Link</button>
+      </form>
+      {% for link in pad.share_links.all %}
+        <div class="d-flex align-items-center small mb-1 {% if not link.is_valid %}text-muted{% endif %}">
+          <span class="share-link-url me-2">{{ request.scheme }}://{{ request.get_host }}{% url 'company_pad:pad_public' token=link.token %}</span>
+          {% if link.is_valid %}
+          <button type="button" class="btn btn-xs btn-outline-secondary copy-share-link" data-url="{{ request.scheme }}://{{ request.get_host }}{% url 'company_pad:pad_public' token=link.token %}">
+            <i class="mdi mdi-content-copy"></i> Copy
+          </button>
+          {% else %}
+            (expired/revoked)
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="mt-4">
+      <a href="{% url 'company_pad:pad_list' %}" class="btn btn-light">Back</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  $(function () {
+    $('.copy-share-link').on('click', function () {
+      var url = $(this).data('url');
+      var $btn = $(this);
+      navigator.clipboard.writeText(url).then(function () {
+        var original = $btn.html();
+        $btn.html('<i class="mdi mdi-check"></i> Copied');
+        setTimeout(function () { $btn.html(original); }, 1500);
+      });
+    });
+  });
+</script>
+{% endblock %}

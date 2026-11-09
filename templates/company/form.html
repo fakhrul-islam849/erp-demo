@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <h4 class="card-title">
+      {% if company %}Edit Company Information{% else %}Add Company Information{% endif %}
+    </h4>
+    <form method="post" class="forms-sample" enctype="multipart/form-data" novalidate>
+      {% csrf_token %}
+      {% for field in form %}
+        <div class="form-group">
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% if field.errors %}
+            <div class="text-danger small">{{ field.errors|join:', ' }}</div>
+          {% endif %}
+        </div>
+      {% endfor %}
+      <button type="submit" class="btn btn-primary me-2">Save</button>
+      {% if company %}
+        <a href="{% url 'company:detail' %}" class="btn btn-light">Cancel</a>
+      {% endif %}
+    </form>
+  </div>
+</div>
+{% endblock %}

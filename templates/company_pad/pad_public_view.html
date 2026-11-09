@@ -1,0 +1,21 @@
+{% extends 'company_pad/public_base.html' %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body text-center">
+    <h3>{{ pad.title }}</h3>
+    {% if pad.status == 'signed' %}
+      <p class="text-success mt-3"><i class="mdi mdi-check-circle"></i> This document has been fully signed.</p>
+      {% if pad.final_pdf %}
+        <a href="{{ pad.final_pdf.url }}" class="btn btn-primary mt-2" target="_blank">Download Signed Document</a>
+      {% else %}
+        <p class="text-muted">The final document is being prepared. Please check back shortly.</p>
+      {% endif %}
+    {% elif pad.signed_by_party_b_at %}
+      <p class="text-muted mt-3">You have already signed this document. It is now waiting on the other party's signature.</p>
+    {% else %}
+      <p class="text-muted mt-3">This document is not currently available.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

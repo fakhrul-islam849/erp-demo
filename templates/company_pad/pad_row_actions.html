@@ -1,0 +1,18 @@
+<div class="dropdown">
+  <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+    Action
+  </button>
+  <div class="dropdown-menu dropdown-menu-right">
+    <a class="dropdown-item" href="{% url 'company_pad:pad_detail' pk=pad.pk %}">
+      <i class="mdi mdi-eye"></i> View
+    </a>
+    {% if request.user.user_type == 'admin' and pad.status == 'draft' %}
+    <a class="dropdown-item" href="{% url 'company_pad:pad_edit' pk=pad.pk %}">
+      <i class="mdi mdi-pencil"></i> Edit
+    </a>
+    <a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal" data-delete-url="{% url 'company_pad:pad_delete' pk=pad.pk %}">
+      <i class="mdi mdi-delete"></i> Delete
+    </a>
+    {% endif %}
+  </div>
+</div>

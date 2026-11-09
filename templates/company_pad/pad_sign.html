@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <h4 class="card-title">Sign Document ({{ role_label }})</h4>
+    <p class="text-muted">{{ pad.title }}</p>
+
+    <form method="post" class="forms-sample" novalidate>
+      {% csrf_token %}
+
+      <div class="form-group">
+        <label for="{{ form.name.id_for_label }}">Your full name</label>
+        {{ form.name }}
+        {% if form.name.errors %}<div class="text-danger small">{{ form.name.errors|join:', ' }}</div>{% endif %}
+      </div>
+
+      <div class="form-check mb-3">
+        <label class="form-check-label">
+          {{ form.confirm }}
+          {{ form.confirm.label }}
+          <i class="input-helper"></i>
+        </label>
+        {% if form.confirm.errors %}<div class="text-danger small">{{ form.confirm.errors|join:', ' }}</div>{% endif %}
+      </div>
+
+      <button type="submit" class="btn btn-primary me-2">Sign</button>
+      <a href="{% url 'company_pad:pad_detail' pk=pad.pk %}" class="btn btn-light">Cancel</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

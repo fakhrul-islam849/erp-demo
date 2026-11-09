@@ -1,0 +1,45 @@
+{% extends 'base.html' %} {% block extra_css %} {% include
+'partials/datatable_css.html' %} {% endblock %} {% block content %}
+<div class="card">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h4 class="card-title mb-0">Employees</h4>
+      <a href="{% url 'employees:create_account' %}" class="btn btn-primary">
+        <i class="mdi mdi-plus"></i> Create Employee Account
+      </a>
+    </div>
+    <div class="table-responsive">
+      <table id="employee-listing" class="table app-datatable">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Username</th>
+            <th>Email</th>
+            <th>Designation</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block extra_js %} {% include 'partials/datatable_js.html' %}
+<script>
+  $(function () {
+    initServerDatatable("#employee-listing", {
+      ajax: '{% url "employees:datatable" %}',
+      order: [],
+      columns: [
+        { data: "name" },
+        { data: "username" },
+        { data: "email" },
+        { data: "designation", orderable: false },
+        { data: "status", orderable: false, searchable: false },
+        { data: "actions", orderable: false, searchable: false },
+      ],
+    });
+  });
+</script>
+{% endblock %}

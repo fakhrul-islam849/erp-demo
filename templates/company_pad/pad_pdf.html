@@ -1,0 +1,138 @@
+{% load static %}
+<html>
+<head>
+<style>
+  @font-face {
+    font-family: 'Signature';
+    src: url('{% static "fonts/signature.ttf" %}');
+  }
+  @page {
+    size: A4;
+    margin: 1cm 1cm 1.5cm 1cm;
+  }
+  body {
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: 11pt;
+    color: #222;
+    margin: 0;
+    padding: 0;
+  }
+  .header-bar {
+    width: 19cm;
+    margin-bottom: 20px;
+  }
+  .header-bar td {
+    background-color: #1f3864;
+    padding: 14px 18px;
+  }
+  .header-left {
+    vertical-align: middle;
+  }
+  .header-left img {
+    height: 42px;
+  }
+  .header-left .company-name {
+    font-size: 15pt;
+    font-weight: bold;
+    color: #ffffff;
+  }
+  .header-right {
+    text-align: right;
+    vertical-align: middle;
+    font-size: 9pt;
+    color: #d7e1f2;
+  }
+  .title {
+    text-align: center;
+    margin: 18px 0;
+  }
+  .details {
+    margin: 15px 0;
+    line-height: 1.6;
+  }
+  .signature-table {
+    width: 19cm;
+    margin-top: 45px;
+  }
+  .signature-cell {
+    vertical-align: bottom;
+    padding: 0 10px;
+  }
+  .signature-script {
+    font-family: 'Signature', cursive;
+    font-size: 28pt;
+    border-bottom: 1px solid #333;
+    padding-bottom: 5px;
+    min-height: 42px;
+  }
+  .signature-meta {
+    margin-top: 6px;
+    font-size: 9pt;
+    color: #444;
+  }
+  .footer-bar {
+    width: 19cm;
+    margin-top: 35px;
+  }
+  .footer-bar td {
+    background-color: #1f3864;
+    color: #ffffff;
+    text-align: center;
+    font-size: 9pt;
+    padding: 10px;
+  }
+</style>
+</head>
+<body>
+  <table class="header-bar">
+    <tr>
+      <td class="header-left" width="11cm">
+        {% if company.logo %}<img src="{{ company.logo.url }}" /><br/>{% endif %}
+        <span class="company-name">{{ company.name }}</span>
+      </td>
+      <td class="header-right" width="8cm">
+        {% if company.company_number %}Company No: {{ company.company_number }}<br/>{% endif %}
+        {% if company.trademark_number %}Trademark No: {{ company.trademark_number }}{% endif %}
+      </td>
+    </tr>
+  </table>
+
+  <div class="title">
+    <h3>{{ pad.title }}</h3>
+    {% if pad.category %}<p>{{ pad.category.name }}</p>{% endif %}
+  </div>
+
+  <div class="details">
+    {{ pad.details|safe }}
+  </div>
+
+  <table class="signature-table">
+    <tr>
+      <td class="signature-cell" width="9.5cm">
+        <div class="signature-script">{{ pad.signed_by_admin_name }}</div>
+        <div class="signature-meta">
+          Admin<br/>
+          Signed on {{ pad.signed_by_admin_at|date:"Y-m-d H:i" }}
+        </div>
+      </td>
+      <td class="signature-cell" width="9.5cm">
+        <div class="signature-script">{{ pad.signed_by_party_b_name }}</div>
+        <div class="signature-meta">
+          {{ pad.party_b_display_name }}<br/>
+          Signed on {{ pad.signed_by_party_b_at|date:"Y-m-d H:i" }}
+        </div>
+      </td>
+    </tr>
+  </table>
+
+  <table class="footer-bar">
+    <tr>
+      <td>
+        {% if company.address %}{{ company.address }} &nbsp;|&nbsp; {% endif %}
+        {% if company.email %}{{ company.email }} &nbsp;|&nbsp; {% endif %}
+        {% if company.contact_number %}{{ company.contact_number }}{% endif %}
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

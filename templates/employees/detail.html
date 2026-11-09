@@ -1,0 +1,137 @@
+{% extends 'base.html' %} {% block content %}
+<div class="card">
+  <div class="card-body">
+    <h4 class="card-title">Employee Details</h4>
+    <div class="table-responsive">
+      <table class="table table-bordered">
+        <tr>
+          <th style="width: 220px">Username</th>
+          <td>{{ target_user.username }}</td>
+        </tr>
+        <tr>
+          <th>IP</th>
+          <td>{{ target_user.last_ip|default:"—" }}</td>
+        </tr>
+        <tr>
+          <th>Last Device</th>
+          <td>{{ target_user.last_device|default:"—" }}</td>
+        </tr>
+        <tr>
+          <th>Last Login</th>
+          <td>{{ target_user.last_login|default:"—" }}</td>
+        </tr>
+        <tr>
+          <th>Password</th>
+          <td class="text-muted">
+            Hidden for security &mdash; use
+            <a href="{% url 'employees:credentials' uid=target_user.uid %}"
+              >Update Credentials</a
+            >
+            to reset it.
+          </td>
+        </tr>
+        <tr>
+          <th>Full Name</th>
+          <td>{{ target_user.get_full_name|default:"—" }}</td>
+        </tr>
+        <tr>
+          <th>Email</th>
+          <td>{{ target_user.email }}</td>
+        </tr>
+        <tr>
+          <th>Status</th>
+          <td>
+            {% if target_user.is_active %}
+            <span class="badge badge-success">Active</span>
+            {% else %}
+            <span class="badge badge-danger">Inactive</span>
+            {% endif %}
+          </td>
+        </tr>
+
+        {% if employee %}
+        <tr>
+          <th>Date of Birth</th>
+          <td>{{ employee.dob }}</td>
+        </tr>
+        <tr>
+          <th>Phone</th>
+          <td>{{ employee.phone }}</td>
+        </tr>
+        <tr>
+          <th>Present Address</th>
+          <td>{{ employee.present_address }}</td>
+        </tr>
+        <tr>
+          <th>Permanent Address</th>
+          <td>{{ employee.permanent_address }}</td>
+        </tr>
+        <tr>
+          <th>Designation</th>
+          <td>{{ employee.designation }}</td>
+        </tr>
+        <tr>
+          <th>Salary</th>
+          <td>{{ employee.salary }}</td>
+        </tr>
+        <tr>
+          <th>Photo</th>
+          <td>
+            {% if employee.photo %}
+            <a href="{{ employee.photo.url }}" target="_blank">
+              <img
+                src="{{ employee.photo.url }}"
+                alt="Photo"
+                style="width: 100px; height: 100px; object-fit: cover"
+                class="rounded"
+              />
+            </a>
+            {% else %} — {% endif %}
+          </td>
+        </tr>
+        <tr>
+          <th>ID Card Front</th>
+          <td>
+            {% if employee.id_card_front %}
+            <a href="{{ employee.id_card_front.url }}" target="_blank">
+              <img
+                src="{{ employee.id_card_front.url }}"
+                alt="ID Card Front"
+                style="width: 160px"
+                class="rounded"
+              />
+            </a>
+            {% else %} — {% endif %}
+          </td>
+        </tr>
+        <tr>
+          <th>ID Card Back</th>
+          <td>
+            {% if employee.id_card_back %}
+            <a href="{{ employee.id_card_back.url }}" target="_blank">
+              <img
+                src="{{ employee.id_card_back.url }}"
+                alt="ID Card Back"
+                style="width: 160px"
+                class="rounded"
+              />
+            </a>
+            {% else %} — {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="2" class="text-muted">
+            HR information not added yet.
+            <a href="{% url 'employees:info' uid=target_user.uid %}"
+              >Add Information</a
+            >
+          </td>
+        </tr>
+        {% endif %}
+      </table>
+    </div>
+    <a href="{% url 'employees:list' %}" class="btn btn-light mt-3">Back to list</a>
+  </div>
+</div>
+{% endblock %}

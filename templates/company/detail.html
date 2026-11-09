@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h4 class="card-title mb-0">Company Information</h4>
+      <a href="{% url 'company:form' %}" class="btn btn-primary">
+        <i class="mdi mdi-pencil"></i> Edit
+      </a>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-bordered">
+        <tr>
+          <th style="width: 220px;">Logo</th>
+          <td>
+            {% if company.logo %}
+              <img src="{{ company.logo.url }}" alt="Logo" style="width: 120px;" class="rounded">
+            {% else %}
+              —
+            {% endif %}
+          </td>
+        </tr>
+        <tr>
+          <th>Name</th>
+          <td>{{ company.name }}</td>
+        </tr>
+        <tr>
+          <th>Address</th>
+          <td>{{ company.address }}</td>
+        </tr>
+        <tr>
+          <th>Contact Number</th>
+          <td>{{ company.contact_number }}</td>
+        </tr>
+        <tr>
+          <th>Email</th>
+          <td>{{ company.email }}</td>
+        </tr>
+        <tr>
+          <th>Company Number</th>
+          <td>{{ company.company_number }}</td>
+        </tr>
+        <tr>
+          <th>Trademark Number</th>
+          <td>{{ company.trademark_number }}</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

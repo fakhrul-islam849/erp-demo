@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'vendors/summernote/dist/summernote-bs4.min.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <h4 class="card-title">
+      {% if pad %}Edit Company Pad{% else %}Add Company Pad{% endif %}
+    </h4>
+    <form method="post" enctype="multipart/form-data" class="forms-sample" novalidate>
+      {% csrf_token %}
+
+      <div class="form-group">
+        <label for="{{ form.category.id_for_label }}">Category</label>
+        {{ form.category }}
+        {% if form.category.errors %}<div class="text-danger small">{{ form.category.errors|join:', ' }}</div>{% endif %}
+      </div>
+
+      <div class="form-group">
+        <label for="{{ form.title.id_for_label }}">Title</label>
+        {{ form.title }}
+        {% if form.title.errors %}<div class="text-danger small">{{ form.title.errors|join:', ' }}</div>{% endif %}
+      </div>
+
+      <div class="form-group">
+        <label for="{{ form.details.id_for_label }}">Details</label>
+        {{ form.details }}
+        {% if form.details.errors %}<div class="text-danger small">{{ form.details.errors|join:', ' }}</div>{% endif %}
+      </div>
+
+      <div class="form-group">
+        <label for="{{ form.attachment.id_for_label }}">Attachment (PDF or image)</label>
+        {{ form.attachment }}
+        {% if form.attachment.errors %}<div class="text-danger small">{{ form.attachment.errors|join:', ' }}</div>{% endif %}
+      </div>
+
+      <div class="form-group">
+        <label>Who is the second signer?</label>
+        <div>
+          {% for radio in form.party_b_type %}
+            <label class="me-3">{{ radio.tag }} {{ radio.choice_label }}</label>
+          {% endfor %}
+        </div>
+        {% if form.party_b_type.errors %}<div class="text-danger small">{{ form.party_b_type.errors|join:', ' }}</div>{% endif %}
+      </div>
+
+      <div class="form-group" id="party-b-employee-group">
+        <label for="{{ form.party_b_employee.id_for_label }}">Employee</label>
+        {{ form.party_b_employee }}
+        {% if form.party_b_employee.errors %}<div class="text-danger small">{{ form.party_b_employee.errors|join:', ' }}</div>{% endif %}
+      </div>
+
+      <div class="form-group" id="party-b-external-group">
+        <label for="{{ form.party_b_name.id_for_label }}">Name</label>
+        {{ form.party_b_name }}
+        {% if form.party_b_name.errors %}<div class="text-danger small">{{ form.party_b_name.errors|join:', ' }}</div>{% endif %}
+
+        <label for="{{ form.party_b_email.id_for_label }}" class="mt-2">Email</label>
+        {{ form.party_b_email }}
+        {% if form.party_b_email.errors %}<div class="text-danger small">{{ form.party_b_email.errors|join:', ' }}</div>{% endif %}
+      </div>
+
+      <button type="submit" class="btn btn-primary me-2">Save</button>
+      <a href="{% url 'company_pad:pad_list' %}" class="btn btn-light">Cancel</a>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'vendors/summernote/dist/summernote-bs4.min.js' %}"></script>
+<script>
+  $(function () {
+    $('#id_details').summernote({ height: 250 });
+
+    function togglePartyBFields() {
+      var type = $('input[name="party_b_type"]:checked').val();
+      $('#party-b-employee-group').toggle(type === 'employee');
+      $('#party-b-external-group').toggle(type === 'external');
+    }
+    $('input[name="party_b_type"]').on('change', togglePartyBFields);
+    togglePartyBFields();
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,38 @@
+<div class="dropdown">
+  <button
+    class="btn btn-sm btn-outline-secondary dropdown-toggle"
+    type="button"
+    data-bs-toggle="dropdown"
+  >
+    Action
+  </button>
+  <div class="dropdown-menu dropdown-menu-right">
+    <a
+      class="dropdown-item"
+      href="{% url 'employees:detail' uid=target_user.uid %}"
+    >
+      <i class="mdi mdi-eye"></i> Show Info
+    </a>
+    {% if has_profile %}
+    <a
+      class="dropdown-item"
+      href="{% url 'employees:info' uid=target_user.uid %}"
+    >
+      <i class="mdi mdi-account-edit"></i> Update General Information
+    </a>
+    {% else %}
+    <a
+      class="dropdown-item"
+      href="{% url 'employees:info' uid=target_user.uid %}"
+    >
+      <i class="mdi mdi-plus-box"></i> Add Information
+    </a>
+    {% endif %}
+    <a
+      class="dropdown-item"
+      href="{% url 'employees:credentials' uid=target_user.uid %}"
+    >
+      <i class="mdi mdi-key"></i> Update Credentials
+    </a>
+  </div>
+</div>
