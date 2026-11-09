@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card mb-4">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h4 class="card-title mb-0">
+        Transfer #{{ transfer.pk }}
+        <span class="badge badge-{{ badge }}">{{ transfer.get_status_display }}</span>
+      </h4>
+      <div>
+        {% if in_transit %}
+        <form method="post" action="{% url 'transfer:transfer_confirm' pk=transfer.pk %}" class="d-inline"
+              onsubmit="return confirm('Confirm that the goods arrived? This cannot be undone.');">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-success btn-sm"><i class="mdi mdi-check"></i> Confirm arrival</button>
+        </form>
+        <a href="{% url 'transfer:transfer_edit' pk=transfer.pk %}" class="btn btn-primary btn-sm">
+          <i class="mdi mdi-pencil"></i> Edit
+        </a>
+        <form method="post" action="{% url 'transfer:transfer_cancel' pk=transfer.pk %}" class="d-inline"
+              onsubmit="return confirm('Cancel this transfer? The stock goes back to the source warehouse.');">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-outline-danger btn-sm">Cancel transfer</button>
+        </form>
+        {% endif %}
+        <a href="{% url 'transfer:transfer_list' %}" class="btn btn-light btn-sm">Back</a>
+      </div>
+    </div>
+
+    {% if in_transit %}
+    <div class="alert alert-info py-2">
+      The stock has left {{ transfer.from_warehouse.name }} but is not available in {{ transfer.to_warehouse.name }} until you confirm the arrival.
+    </div>
+    {% endif %}
+
+    <div class="row">
+      <div class="col-md-4 mb-2"><strong>Date:</strong> {{ transfer.date|date:"Y-m-d" }}</div>
+      <div class="col-md-4 mb-2"><strong>From:</strong> {{ transfer.from_warehouse.name }}</div>
+      <div class="col-md-4 mb-2"><strong>To:</strong> {{ transfer.to_warehouse.name }}</div>
+      <div class="col-md-4 mb-2">
+        <strong>Account:</strong>
+        {% if transfer.account %}{{ transfer.account.name }} ({{ transfer.account.currency }}){% else %}&mdash;{% endif %}
+      </div>
+      {% if transfer.confirmed_at %}
+      <div class="col-md-4 mb-2"><strong>Confirmed:</strong> {{ transfer.confirmed_at|date:"Y-m-d H:i" }}</div>
+      {% endif %}
+      {% if transfer.note %}<div class="col-12 mb-2"><strong>Note:</strong> {{ transfer.note }}</div>{% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="card mb-4">
+  <div class="card-body">
+    <h5 class="card-title">Products</h5>
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Taken from</th>
+            <th class="text-end">Qty</th>
+            <th class="text-end">Cost per unit</th>
+            <th class="text-end">Cost</th>
+            <th class="text-end">Discount</th>
+            <th class="text-end">New landed cost</th>
+            <th class="text-end">Sale price</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for l in lots %}
+          <tr>
+            <td>
+              {{ l.product.name }}
+              {% for a in l.adjustments.all %}
+              <div class="small text-muted">{{ a.adjustment_type.name }}: {{ a.amount }}</div>
+              {% endfor %}
+            </td>
+            <td>
+              Lot #{{ l.source_lot_id }}
+              <span class="small text-muted">
+                ({% if l.source_lot.purchase_id %}Purchase #{{ l.source_lot.purchase_id }}{% else %}Transfer #{{ l.source_lot.transfer_id }}{% endif %})
+              </span>
+            </td>
+            <td class="text-end">{{ l.quantity }}</td>
+            <td class="text-end">{{ l.purchase_price|floatformat:4 }}</td>
+            <td class="text-end">{{ l.cost }}</td>
+            <td class="text-end">{{ l.discount }}</td>
+            <td class="text-end">{{ l.landed_cost|floatformat:4 }}</td>
+            <td class="text-end">{{ l.sale_price }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-md-6">
+    <div class="card mb-4">
+      <div class="card-body">
+        <h5 class="card-title">Transfer adjustments</h5>
+        {% for a in header_adjustments %}
+        <div class="d-flex justify-content-between">
+          <span>{{ a.adjustment_type.name }} ({{ a.adjustment_type.get_type_display }})</span>
+          <span>{{ a.amount }}</span>
+        </div>
+        {% empty %}
+        <span class="text-muted">None</span>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card mb-4">
+      <div class="card-body">
+        <h5 class="card-title">Totals</h5>
+        <div class="d-flex justify-content-between"><span>Value of stock moved</span><span>{{ transfer.subtotal }}</span></div>
+        <div class="d-flex justify-content-between"><span>Cost</span><span>+ {{ transfer.total_cost }}</span></div>
+        <div class="d-flex justify-content-between"><span>Discount</span><span>- {{ transfer.total_discount }}</span></div>
+        <hr class="my-2">
+        <div class="d-flex justify-content-between">
+          <strong>Net cost{% if transfer.status == 'confirmed' %} (paid){% elif transfer.status == 'cancelled' %} (not paid){% else %} (paid on confirm){% endif %}</strong>
+          <strong>{{ transfer.net_cost }}{% if transfer.account %} {{ transfer.account.currency }}{% endif %}</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

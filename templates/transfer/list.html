@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+
+{% block extra_css %}
+{% include 'partials/datatable_css.html' %}
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h4 class="card-title mb-0">Transfers</h4>
+      <a href="{% url 'transfer:transfer_add' %}" class="btn btn-primary">
+        <i class="mdi mdi-plus"></i> New Transfer
+      </a>
+    </div>
+
+    <form method="get" class="row g-2 mb-3">
+      <div class="col-md-2">
+        <input type="date" name="date_from" value="{{ filters.date_from }}" class="form-control" title="From date">
+      </div>
+      <div class="col-md-2">
+        <input type="date" name="date_to" value="{{ filters.date_to }}" class="form-control" title="To date">
+      </div>
+      <div class="col-md-2">
+        <select name="from_warehouse" class="form-select">
+          <option value="">Any source</option>
+          {% for w in warehouses %}
+          <option value="{{ w.pk }}" {% if filters.from_warehouse == w.pk|stringformat:"d" %}selected{% endif %}>{{ w.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <select name="to_warehouse" class="form-select">
+          <option value="">Any destination</option>
+          {% for w in warehouses %}
+          <option value="{{ w.pk }}" {% if filters.to_warehouse == w.pk|stringformat:"d" %}selected{% endif %}>{{ w.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <select name="status" class="form-select">
+          <option value="">All statuses</option>
+          {% for value, label in statuses %}
+          <option value="{{ value }}" {% if filters.status == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-outline-primary">Filter</button>
+        <a href="{% url 'transfer:transfer_list' %}" class="btn btn-light">Reset</a>
+      </div>
+    </form>
+
+    <div class="table-responsive">
+      <table id="transfer-listing" class="table app-datatable">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>From</th>
+            <th>To</th>
+            <th>Status</th>
+            <th>Net cost</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% include 'partials/datatable_js.html' %}
+<script>
+  $(function () {
+    initServerDatatable('#transfer-listing', {
+      ajax: '{% url "transfer:transfer_datatable" %}' + window.location.search,
+      order: [],
+      columns: [
+        { data: 'date' },
+        { data: 'from' },
+        { data: 'to' },
+        { data: 'status' },
+        { data: 'net_cost', orderable: false, searchable: false },
+        { data: 'actions', orderable: false, searchable: false },
+      ],
+    });
+  });
+</script>
+{% endblock %}
