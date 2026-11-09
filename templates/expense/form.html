@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <h4 class="card-title">{% if expense %}Edit Expense{% else %}Add Expense{% endif %}</h4>
+    <form method="post" enctype="multipart/form-data" class="forms-sample" novalidate>
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+      <div class="alert alert-danger">{{ form.non_field_errors|join:' ' }}</div>
+      {% endif %}
+      <div class="row">
+        {% for field in form %}
+        <div class="col-md-6 form-group">
+          {% if field.name == 'clear_attachment' %}
+          <div class="form-check">
+            <label class="form-check-label">
+              {{ field }} {{ field.label }}
+            </label>
+          </div>
+          {% else %}
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% if field.name == 'attachment' and expense and expense.attachment %}
+          <div class="small mt-1">
+            Current file:
+            <a href="{{ expense.attachment.url }}" target="_blank" rel="noopener">{{ expense.attachment.name|cut:'expense/attachments/' }}</a>.
+            Choosing a new file replaces it.
+          </div>
+          {% endif %}
+          {% endif %}
+          {% if field.help_text %}<div class="small text-muted">{{ field.help_text }}</div>{% endif %}
+          {% if field.errors %}
+          <div class="text-danger small">{{ field.errors|join:', ' }}</div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      <button type="submit" class="btn btn-primary me-2">Save</button>
+      <a href="{% url 'expense:expense_list' %}" class="btn btn-light">Cancel</a>
+    </form>
+  </div>
+</div>
+{% endblock %}
