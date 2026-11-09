@@ -1,0 +1,15 @@
+<div class="dropdown">
+  <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+    Action
+  </button>
+  <div class="dropdown-menu dropdown-menu-right">
+    <a class="dropdown-item" href="{% url 'sale:sale_detail' pk=sale.pk %}">
+      <i class="mdi mdi-eye"></i> View
+    </a>
+    {% if editable %}
+    <a class="dropdown-item" href="{% url 'sale:sale_edit' pk=sale.pk %}">
+      <i class="mdi mdi-pencil"></i> Edit
+    </a>
+    {% endif %}
+  </div>
+</div>

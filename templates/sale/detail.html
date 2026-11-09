@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card mb-4">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h4 class="card-title mb-0">
+        Sale #{{ sale.pk }}
+        <span class="badge badge-{{ status_badge }}">{{ sale.get_status_display }}</span>
+        <span class="badge badge-{{ payment_badge }}">{{ sale.get_payment_status_display }}</span>
+      </h4>
+      <div>
+        {% if editable %}
+        <a href="{% url 'sale:sale_edit' pk=sale.pk %}" class="btn btn-primary btn-sm">
+          <i class="mdi mdi-pencil"></i> Edit
+        </a>
+        {% endif %}
+        {% if is_sold %}
+        <form method="post" action="{% url 'sale:sale_return' pk=sale.pk %}" class="d-inline"
+              onsubmit="return confirm('Return this whole sale? The stock goes back to its lots. This cannot be undone.');">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-outline-warning btn-sm">Return</button>
+        </form>
+        <form method="post" action="{% url 'sale:sale_damage' pk=sale.pk %}" class="d-inline"
+              onsubmit="return confirm('Mark this sale as damaged? The stock stays deducted. This cannot be undone.');">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-outline-danger btn-sm">Damaged</button>
+        </form>
+        {% endif %}
+        {% if can_refund %}
+        <form method="post" action="{% url 'sale:sale_refund' pk=sale.pk %}" class="d-inline"
+              onsubmit="return confirm('Pay {{ sale.total_amount }} {{ sale.account.currency }} back to the customer? This cannot be undone.');">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-outline-secondary btn-sm">Refund</button>
+        </form>
+        {% endif %}
+        <a href="{% url 'sale:sale_list' %}" class="btn btn-light btn-sm">Back</a>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-4 mb-2"><strong>Date:</strong> {{ sale.date|date:"Y-m-d" }}</div>
+      <div class="col-md-4 mb-2"><strong>Account:</strong> {{ sale.account.name }} ({{ sale.account.currency }})</div>
+      {% if sale.refund_transaction %}
+      <div class="col-md-4 mb-2"><strong>Refunded:</strong> {{ sale.refund_transaction.amount }} {{ sale.account.currency }} on {{ sale.refund_transaction.date|date:"Y-m-d" }}</div>
+      {% endif %}
+      {% if sale.details %}<div class="col-12 mb-2"><strong>Details:</strong> {{ sale.details }}</div>{% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="card mb-4">
+  <div class="card-body">
+    <h5 class="card-title">Products</h5>
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Warehouse</th>
+            <th class="text-end">Qty</th>
+            <th class="text-end">Sale price</th>
+            <th class="text-end">Added</th>
+            <th class="text-end">Discount</th>
+            <th class="text-end">Line total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for l in lines %}
+          <tr>
+            <td>
+              {{ l.lot.product.name }}
+              <span class="small text-muted">(lot #{{ l.lot_id }})</span>
+              {% for a in l.adjustments.all %}
+              <div class="small text-muted">{{ a.adjustment_type.name }}: {{ a.amount }}</div>
+              {% endfor %}
+            </td>
+            <td>{{ l.lot.warehouse.name }}</td>
+            <td class="text-end">{{ l.quantity }}</td>
+            <td class="text-end">{{ l.sale_price }}</td>
+            <td class="text-end">{{ l.add_total }}</td>
+            <td class="text-end">{{ l.deduct_total }}</td>
+            <td class="text-end">{{ l.line_total }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-md-6">
+    <div class="card mb-4">
+      <div class="card-body">
+        <h5 class="card-title">Sale adjustments</h5>
+        {% for a in sale_adjustments %}
+        <div class="d-flex justify-content-between">
+          <span>{{ a.adjustment_type.name }} ({{ a.adjustment_type.get_type_display }})</span>
+          <span>{{ a.amount }}</span>
+        </div>
+        {% empty %}
+        <span class="text-muted">None</span>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card mb-4">
+      <div class="card-body">
+        <h5 class="card-title">Totals</h5>
+        <div class="d-flex justify-content-between"><span>Products (with line adjustments)</span><span>{{ sale.subtotal }}</span></div>
+        <div class="d-flex justify-content-between text-muted small"><span>&nbsp;&nbsp;of which added on lines</span><span>+ {{ sale.lines_add }}</span></div>
+        <div class="d-flex justify-content-between text-muted small"><span>&nbsp;&nbsp;of which discounted on lines</span><span>- {{ sale.lines_deduct }}</span></div>
+        <div class="d-flex justify-content-between"><span>Sale added</span><span>+ {{ sale.sale_add }}</span></div>
+        <div class="d-flex justify-content-between"><span>Sale discount</span><span>- {{ sale.sale_deduct }}</span></div>
+        <hr class="my-2">
+        <div class="d-flex justify-content-between">
+          <strong>Total amount</strong>
+          <strong>{{ sale.total_amount }} {{ sale.account.currency }}</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,357 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'vendors/select2/select2.min.css' %}">
+<style>
+.select2-container { width: 100% !important; }
+.select2-container--default .select2-selection--single {
+  height: calc(1.5em + 1.0rem + 2px);
+  padding: .35rem .75rem;
+}
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+  line-height: 1.5;
+  padding: 0;
+}
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+  height: 100%;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<form method="post" id="sale-form" novalidate>
+  {% csrf_token %}
+  <input type="hidden" name="payload" id="payload">
+
+  <div class="card mb-4">
+    <div class="card-body">
+      <h4 class="card-title">
+        {% if sale %}Edit Sale #{{ sale.pk }}{% else %}New Sale{% endif %}
+      </h4>
+
+      {% if errors %}
+      <div class="alert alert-danger">
+        <ul class="mb-0">
+          {% for error in errors %}<li>{{ error }}</li>{% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+
+      <div class="row">
+        {% for field in form %}
+        <div class="col-md-{% if field.name == 'details' %}12{% else %}4{% endif %} form-group">
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% if field.help_text %}<div class="small text-muted">{{ field.help_text }}</div>{% endif %}
+          {% if field.errors %}
+          <div class="text-danger small">{{ field.errors|join:', ' }}</div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="card mb-4">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="card-title mb-0">Products</h5>
+        <button type="button" class="btn btn-outline-primary btn-sm" id="add-line">
+          <i class="mdi mdi-plus"></i> Add product
+        </button>
+      </div>
+      <div class="table-responsive">
+        <table class="table">
+          <thead>
+            <tr>
+              <th style="min-width: 380px">Stock</th>
+              <th style="width: 110px">Quantity</th>
+              <th class="text-end" style="width: 110px">Sale price</th>
+              <th class="text-end" style="width: 120px">Line total</th>
+              <th style="min-width: 260px">Line adjustments</th>
+              <th style="width: 50px"></th>
+            </tr>
+          </thead>
+          <tbody id="lines-body"></tbody>
+        </table>
+      </div>
+      <div class="small text-muted">
+        Search any product to see where it is stored, what it cost and its sale price. The sale price comes from the stock and cannot be changed here. Delivery, packaging or a discount for one product goes in its line adjustments.
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-6">
+      <div class="card mb-4">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="card-title mb-0">Sale adjustments</h5>
+            <button type="button" class="btn btn-outline-primary btn-sm" id="add-header-adj">
+              <i class="mdi mdi-plus"></i> Add adjustment
+            </button>
+          </div>
+          <div id="header-adjs"></div>
+          <div class="small text-muted mt-2">
+            Charges added for the customer (delivery, packaging) or a discount on the whole sale.
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card mb-4">
+        <div class="card-body">
+          <h5 class="card-title">Totals</h5>
+          <div class="d-flex justify-content-between"><span>Products (with line adjustments)</span><span id="t-subtotal">0.00</span></div>
+          <div class="d-flex justify-content-between"><span>Sale added</span><span>+ <span id="t-add">0.00</span></span></div>
+          <div class="d-flex justify-content-between"><span>Sale discount</span><span>- <span id="t-deduct">0.00</span></span></div>
+          <hr class="my-2">
+          <div class="d-flex justify-content-between"><strong>Total amount</strong><strong id="t-total">0.00</strong></div>
+          <div class="small text-muted mt-2">The company receives this amount when the payment is marked Received.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <button type="submit" class="btn btn-primary me-2">{% if sale %}Save{% else %}Add sale{% endif %}</button>
+  <a href="{% if sale %}{% url 'sale:sale_detail' pk=sale.pk %}{% else %}{% url 'sale:sale_list' %}{% endif %}" class="btn btn-light">Cancel</a>
+</form>
+
+{{ adjustment_types|json_script:"types-data" }}
+{{ initial_lots|json_script:"initial-lots" }}
+{{ payload|json_script:"initial-payload" }}
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'vendors/select2/select2.min.js' %}"></script>
+<script>
+(function () {
+  var types = JSON.parse(document.getElementById('types-data').textContent);
+  var initial = JSON.parse(document.getElementById('initial-payload').textContent);
+  var lotsUrl = '{% url "sale:available_lots" %}';
+  var saleId = '{% if sale %}{{ sale.pk }}{% endif %}';
+
+  var linesBody = document.getElementById('lines-body');
+  var headerAdjs = document.getElementById('header-adjs');
+
+  // Every lot seen so far (saved lines first, then whatever the search returned), by id.
+  var lotCache = {};
+  JSON.parse(document.getElementById('initial-lots').textContent).forEach(function (lot) {
+    lotCache[String(lot.id)] = lot;
+  });
+
+  function lotById(id) {
+    return lotCache[String(id)] || null;
+  }
+
+  function typeById(id) {
+    for (var i = 0; i < types.length; i++) {
+      if (String(types[i].id) === String(id)) return types[i];
+    }
+    return null;
+  }
+
+  function fromHtml(html) {
+    var template = document.createElement('template');
+    template.innerHTML = html.trim();
+    return template.content.firstChild;
+  }
+
+  function number(value) {
+    var n = parseFloat(value);
+    return isNaN(n) ? 0 : n;
+  }
+
+  function makeSelect(items, selectedId, placeholder, labelFn) {
+    var select = document.createElement('select');
+    select.className = 'form-select';
+    var blank = document.createElement('option');
+    blank.value = '';
+    blank.textContent = placeholder;
+    select.appendChild(blank);
+    items.forEach(function (item) {
+      var option = document.createElement('option');
+      option.value = item.id;
+      option.textContent = labelFn(item);
+      if (String(item.id) === String(selectedId)) option.selected = true;
+      select.appendChild(option);
+    });
+    return select;
+  }
+
+  function lotLabel(lot) {
+    return lot.product + ' — ' + lot.warehouse + ' · ' + lot.remaining + ' left · bought ' +
+      number(lot.purchase_price).toFixed(2) + ' · sale ' + number(lot.sale_price).toFixed(2) +
+      ' · ' + lot.date;
+  }
+
+  // Stock is searched on the server (ten random lots until you type), never loaded all at once.
+  function makeLotSelect(selectedId) {
+    var select = document.createElement('select');
+    select.className = 'form-select';
+    var blank = document.createElement('option');
+    blank.value = '';
+    select.appendChild(blank);
+    var lot = lotById(selectedId);
+    if (lot) {
+      var option = document.createElement('option');
+      option.value = lot.id;
+      option.textContent = lotLabel(lot);
+      option.selected = true;
+      select.appendChild(option);
+    }
+    return select;
+  }
+
+  function enableLotSearch(select) {
+    window.jQuery(select).select2({
+      placeholder: 'Search product',
+      allowClear: true,
+      width: '100%',
+      ajax: {
+        url: lotsUrl,
+        dataType: 'json',
+        delay: 250,
+        data: function (params) {
+          return { sale: saleId, q: params.term || '', page: params.page || 1 };
+        },
+        processResults: function (data) {
+          data.lots.forEach(function (lot) { lotCache[String(lot.id)] = lot; });
+          return {
+            results: data.lots.map(function (lot) { return { id: lot.id, text: lotLabel(lot) }; }),
+            pagination: { more: data.more },
+          };
+        },
+      },
+    });
+  }
+
+  function addAdjustment(container, adjustment) {
+    adjustment = adjustment || {};
+    var row = fromHtml(
+      '<div class="d-flex gap-2 mb-2 adj-row">' +
+      '<div class="flex-grow-1 adj-type"></div>' +
+      '<input type="number" min="0" step="0.01" class="form-control adj-amount" style="width: 120px" placeholder="Amount">' +
+      '<button type="button" class="btn btn-sm btn-outline-danger adj-remove">&times;</button>' +
+      '</div>'
+    );
+    row.querySelector('.adj-type').appendChild(
+      makeSelect(types, adjustment.type, 'Type', function (t) {
+        return t.name + (t.type === 'add' ? ' (+)' : ' (−)');
+      })
+    );
+    if (adjustment.amount != null) row.querySelector('.adj-amount').value = adjustment.amount;
+    row.querySelector('.adj-remove').addEventListener('click', function () {
+      row.remove();
+      recalc();
+    });
+    row.addEventListener('input', recalc);
+    row.addEventListener('change', recalc);
+    container.appendChild(row);
+  }
+
+  function readAdjustments(container) {
+    var result = [];
+    container.querySelectorAll('.adj-row').forEach(function (row) {
+      result.push({
+        type: row.querySelector('select').value,
+        amount: row.querySelector('.adj-amount').value,
+      });
+    });
+    return result;
+  }
+
+  function addLine(line) {
+    line = line || {};
+    var tr = fromHtml(
+      '<tr class="line">' +
+      '<td class="c-lot"></td>' +
+      '<td><input type="number" min="1" step="1" class="form-control c-qty"></td>' +
+      '<td class="c-price text-end">&mdash;</td>' +
+      '<td class="c-total text-end">0.00</td>' +
+      '<td><div class="c-adjs"></div>' +
+      '<button type="button" class="btn btn-link btn-sm p-0 c-add-adj">+ Adjustment</button></td>' +
+      '<td><button type="button" class="btn btn-sm btn-outline-danger c-remove">&times;</button></td>' +
+      '</tr>'
+    );
+    var lotSelect = makeLotSelect(line.lot);
+    tr.querySelector('.c-lot').appendChild(lotSelect);
+    if (line.quantity != null) tr.querySelector('.c-qty').value = line.quantity;
+    (line.adjustments || []).forEach(function (a) { addAdjustment(tr.querySelector('.c-adjs'), a); });
+
+    window.jQuery(lotSelect).on('change', function () {
+      var lot = lotById(lotSelect.value);
+      var qty = tr.querySelector('.c-qty');
+      if (lot) qty.max = lot.remaining; else qty.removeAttribute('max');
+      recalc();
+    });
+    tr.querySelector('.c-add-adj').addEventListener('click', function () {
+      addAdjustment(tr.querySelector('.c-adjs'));
+    });
+    tr.querySelector('.c-remove').addEventListener('click', function () {
+      tr.remove();
+      recalc();
+    });
+    tr.addEventListener('input', recalc);
+    tr.addEventListener('change', recalc);
+    linesBody.appendChild(tr);
+    enableLotSearch(lotSelect);
+
+    var lot = lotById(line.lot);
+    if (lot) tr.querySelector('.c-qty').max = lot.remaining;
+  }
+
+  function adjustmentTotals(adjustments) {
+    var add = 0, deduct = 0;
+    adjustments.forEach(function (a) {
+      var type = typeById(a.type);
+      if (!type) return;
+      if (type.type === 'add') add += number(a.amount); else deduct += number(a.amount);
+    });
+    return { add: add, deduct: deduct };
+  }
+
+  function recalc() {
+    var subtotal = 0;
+    linesBody.querySelectorAll('tr.line').forEach(function (tr) {
+      var lot = lotById(tr.querySelector('.c-lot select').value);
+      var price = lot ? number(lot.sale_price) : 0;
+      var adj = adjustmentTotals(readAdjustments(tr.querySelector('.c-adjs')));
+      var total = lot ? number(tr.querySelector('.c-qty').value) * price + adj.add - adj.deduct : 0;
+      tr.querySelector('.c-price').textContent = lot ? price.toFixed(2) : '\u2014';
+      tr.querySelector('.c-total').textContent = total.toFixed(2);
+      subtotal += total;
+    });
+    var header = adjustmentTotals(readAdjustments(headerAdjs));
+    document.getElementById('t-subtotal').textContent = subtotal.toFixed(2);
+    document.getElementById('t-add').textContent = header.add.toFixed(2);
+    document.getElementById('t-deduct').textContent = header.deduct.toFixed(2);
+    document.getElementById('t-total').textContent = (subtotal + header.add - header.deduct).toFixed(2);
+  }
+
+  function collect() {
+    var lines = [];
+    linesBody.querySelectorAll('tr.line').forEach(function (tr) {
+      lines.push({
+        lot: tr.querySelector('.c-lot select').value,
+        quantity: tr.querySelector('.c-qty').value,
+        adjustments: readAdjustments(tr.querySelector('.c-adjs')),
+      });
+    });
+    return { lines: lines, adjustments: readAdjustments(headerAdjs) };
+  }
+
+  document.getElementById('add-line').addEventListener('click', function () { addLine(); });
+  document.getElementById('add-header-adj').addEventListener('click', function () { addAdjustment(headerAdjs); });
+  document.getElementById('sale-form').addEventListener('submit', function () {
+    document.getElementById('payload').value = JSON.stringify(collect());
+  });
+
+  (initial.lines || []).forEach(addLine);
+  (initial.adjustments || []).forEach(function (a) { addAdjustment(headerAdjs, a); });
+  if (!linesBody.children.length) addLine();
+  recalc();
+})();
+</script>
+{% endblock %}

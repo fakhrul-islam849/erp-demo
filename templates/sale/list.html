@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% block extra_css %}
+{% include 'partials/datatable_css.html' %}
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h4 class="card-title mb-0">Sales</h4>
+      <a href="{% url 'sale:sale_add' %}" class="btn btn-primary">
+        <i class="mdi mdi-plus"></i> New Sale
+      </a>
+    </div>
+
+    <form method="get" class="row g-2 mb-3">
+      <div class="col-md-2">
+        <input type="date" name="date_from" value="{{ filters.date_from }}" class="form-control" title="From date">
+      </div>
+      <div class="col-md-2">
+        <input type="date" name="date_to" value="{{ filters.date_to }}" class="form-control" title="To date">
+      </div>
+      <div class="col-md-2">
+        <select name="status" class="form-select">
+          <option value="">All statuses</option>
+          {% for value, label in statuses %}
+          <option value="{{ value }}" {% if filters.status == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <select name="payment_status" class="form-select">
+          <option value="">All payments</option>
+          {% for value, label in payment_statuses %}
+          <option value="{{ value }}" {% if filters.payment_status == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <button type="submit" class="btn btn-outline-primary">Filter</button>
+        <a href="{% url 'sale:sale_list' %}" class="btn btn-light">Reset</a>
+      </div>
+    </form>
+
+    <div class="table-responsive">
+      <table id="sale-listing" class="table app-datatable">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Account</th>
+            <th>Total</th>
+            <th>Status</th>
+            <th>Payment</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% include 'partials/datatable_js.html' %}
+<script>
+  $(function () {
+    initServerDatatable('#sale-listing', {
+      ajax: '{% url "sale:sale_datatable" %}' + window.location.search,
+      order: [],
+      columns: [
+        { data: 'date' },
+        { data: 'account' },
+        { data: 'total' },
+        { data: 'status' },
+        { data: 'payment_status' },
+        { data: 'actions', orderable: false, searchable: false },
+      ],
+    });
+  });
+</script>
+{% endblock %}
