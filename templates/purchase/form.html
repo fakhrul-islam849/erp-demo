@@ -1,0 +1,355 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'vendors/select2/select2.min.css' %}">
+<style>
+.select2-container { width: 100% !important; }
+.select2-container--default .select2-selection--single {
+  height: calc(1.5em + 1.0rem + 2px);
+  padding: .35rem .75rem;
+}
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+  line-height: 1.5;
+  padding: 0;
+}
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+  height: 100%;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<form method="post" enctype="multipart/form-data" id="purchase-form" novalidate>
+  {% csrf_token %}
+  <input type="hidden" name="payload" id="payload">
+
+  <div class="card mb-4">
+    <div class="card-body">
+      <h4 class="card-title">
+        {% if purchase %}Edit Purchase #{{ purchase.pk }}{% else %}Add Purchase{% endif %}
+      </h4>
+
+      {% if errors %}
+      <div class="alert alert-danger">
+        <ul class="mb-0">
+          {% for error in errors %}<li>{{ error }}</li>{% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+
+      <div class="row">
+        {% for field in form %}
+        <div class="col-md-{% if field.name == 'note' %}12{% else %}4{% endif %} form-group">
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% if field.name == 'invoice' and purchase.invoice %}
+          <div class="small mt-1">Current: <a href="{{ purchase.invoice.url }}" target="_blank" rel="noopener">view file</a> (upload a new one to replace it)</div>
+          {% endif %}
+          {% if field.help_text %}<div class="small text-muted">{{ field.help_text }}</div>{% endif %}
+          {% if field.errors %}
+          <div class="text-danger small">{{ field.errors|join:', ' }}</div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="card mb-4">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="card-title mb-0">Products</h5>
+        <button type="button" class="btn btn-outline-primary btn-sm" id="add-line">
+          <i class="mdi mdi-plus"></i> Add product
+        </button>
+      </div>
+      <div class="table-responsive">
+        <table class="table">
+          <thead>
+            <tr>
+              <th style="min-width: 200px">Product</th>
+              <th style="width: 110px">Quantity</th>
+              <th style="width: 140px">Purchase price</th>
+              <th style="width: 140px">Sale price</th>
+              <th class="text-end" style="width: 120px">Line total</th>
+              <th style="min-width: 260px">Line adjustments</th>
+              <th style="width: 50px"></th>
+            </tr>
+          </thead>
+          <tbody id="lines-body"></tbody>
+        </table>
+      </div>
+      <div class="small text-muted">
+        Prices are suggested from the last purchase of the product (same supplier first). You can change them.
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-6">
+      <div class="card mb-4">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="card-title mb-0">Purchase adjustments</h5>
+            <button type="button" class="btn btn-outline-primary btn-sm" id="add-header-adj">
+              <i class="mdi mdi-plus"></i> Add adjustment
+            </button>
+          </div>
+          <div id="header-adjs"></div>
+          <div class="small text-muted mt-2">
+            Applied to the whole purchase (for example delivery cost or a discount) and spread across the products by value.
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card mb-4">
+        <div class="card-body">
+          <h5 class="card-title">Totals</h5>
+          <div class="d-flex justify-content-between"><span>Subtotal</span><span id="t-subtotal">0.00</span></div>
+          <div class="d-flex justify-content-between"><span>Cost</span><span>+ <span id="t-cost">0.00</span></span></div>
+          <div class="d-flex justify-content-between"><span>Discount</span><span>- <span id="t-discount">0.00</span></span></div>
+          <hr class="my-2">
+          <div class="d-flex justify-content-between"><strong>Total</strong><strong id="t-total">0.00</strong></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <button type="submit" class="btn btn-primary me-2">Save</button>
+  <a href="{% if purchase %}{% url 'purchase:purchase_detail' pk=purchase.pk %}{% else %}{% url 'purchase:purchase_list' %}{% endif %}" class="btn btn-light">Cancel</a>
+</form>
+
+{{ products|json_script:"products-data" }}
+{{ adjustment_types|json_script:"types-data" }}
+{{ payload|json_script:"initial-payload" }}
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'vendors/select2/select2.min.js' %}"></script>
+<script>
+(function () {
+  var products = JSON.parse(document.getElementById('products-data').textContent);
+  var types = JSON.parse(document.getElementById('types-data').textContent);
+  var initial = JSON.parse(document.getElementById('initial-payload').textContent);
+  var suggestUrl = '{% url "purchase:suggest_price" %}';
+  var searchUrl = '{% url "product:product_search" %}';
+
+  var linesBody = document.getElementById('lines-body');
+  var headerAdjs = document.getElementById('header-adjs');
+  var supplierSelect = document.getElementById('id_supplier');
+
+  function typeById(id) {
+    for (var i = 0; i < types.length; i++) {
+      if (String(types[i].id) === String(id)) return types[i];
+    }
+    return null;
+  }
+
+  function makeSelect(items, selectedId, placeholder, labelFn) {
+    var select = document.createElement('select');
+    select.className = 'form-select';
+    var blank = document.createElement('option');
+    blank.value = '';
+    blank.textContent = placeholder;
+    select.appendChild(blank);
+    items.forEach(function (item) {
+      var option = document.createElement('option');
+      option.value = item.id;
+      option.textContent = labelFn(item);
+      if (String(item.id) === String(selectedId)) option.selected = true;
+      select.appendChild(option);
+    });
+    return select;
+  }
+
+  function fromHtml(html) {
+    var template = document.createElement('template');
+    template.innerHTML = html.trim();
+    return template.content.firstChild;
+  }
+
+  function number(value) {
+    var n = parseFloat(value);
+    return isNaN(n) ? 0 : n;
+  }
+
+  // Products are searched on the server (ten random ones until you type), never loaded all at once.
+  function makeProductSelect(selectedId) {
+    var select = document.createElement('select');
+    select.className = 'form-select';
+    var blank = document.createElement('option');
+    blank.value = '';
+    select.appendChild(blank);
+    products.forEach(function (product) {
+      if (String(product.id) !== String(selectedId)) return;
+      var option = document.createElement('option');
+      option.value = product.id;
+      option.textContent = product.name;
+      option.selected = true;
+      select.appendChild(option);
+    });
+    return select;
+  }
+
+  function enableProductSearch(select) {
+    window.jQuery(select).select2({
+      placeholder: 'Search product',
+      allowClear: true,
+      width: '100%',
+      ajax: {
+        url: searchUrl,
+        dataType: 'json',
+        delay: 250,
+        data: function (params) { return { q: params.term || '', page: params.page || 1 }; },
+        processResults: function (data) {
+          return {
+            results: data.products.map(function (p) { return { id: p.id, text: p.name }; }),
+            pagination: { more: data.more },
+          };
+        },
+      },
+    });
+  }
+
+  function addAdjustment(container, adjustment) {
+    adjustment = adjustment || {};
+    var row = fromHtml(
+      '<div class="d-flex gap-2 mb-2 adj-row">' +
+      '<div class="flex-grow-1 adj-type"></div>' +
+      '<input type="number" min="0" step="0.01" class="form-control adj-amount" style="width: 120px" placeholder="Amount">' +
+      '<button type="button" class="btn btn-sm btn-outline-danger adj-remove">&times;</button>' +
+      '</div>'
+    );
+    row.querySelector('.adj-type').appendChild(
+      makeSelect(types, adjustment.type, 'Type', function (t) {
+        return t.name + (t.type === 'add' ? ' (+)' : ' (−)');
+      })
+    );
+    if (adjustment.amount != null) row.querySelector('.adj-amount').value = adjustment.amount;
+    row.querySelector('.adj-remove').addEventListener('click', function () {
+      row.remove();
+      recalc();
+    });
+    row.addEventListener('input', recalc);
+    row.addEventListener('change', recalc);
+    container.appendChild(row);
+  }
+
+  function readAdjustments(container) {
+    var result = [];
+    container.querySelectorAll('.adj-row').forEach(function (row) {
+      result.push({
+        type: row.querySelector('select').value,
+        amount: row.querySelector('.adj-amount').value,
+      });
+    });
+    return result;
+  }
+
+  function addLine(line) {
+    line = line || {};
+    var tr = fromHtml(
+      '<tr class="line">' +
+      '<td class="c-product"></td>' +
+      '<td><input type="number" min="1" step="1" class="form-control c-qty"></td>' +
+      '<td><input type="number" min="0" step="0.01" class="form-control c-pp"></td>' +
+      '<td><input type="number" min="0" step="0.01" class="form-control c-sp"></td>' +
+      '<td class="c-total text-end">0.00</td>' +
+      '<td><div class="c-adjs"></div>' +
+      '<button type="button" class="btn btn-link btn-sm p-0 c-add-adj">+ Adjustment</button></td>' +
+      '<td><button type="button" class="btn btn-sm btn-outline-danger c-remove">&times;</button></td>' +
+      '</tr>'
+    );
+    var productSelect = makeProductSelect(line.product);
+    tr.querySelector('.c-product').appendChild(productSelect);
+    if (line.quantity != null) tr.querySelector('.c-qty').value = line.quantity;
+    if (line.purchase_price != null) tr.querySelector('.c-pp').value = line.purchase_price;
+    if (line.sale_price != null) tr.querySelector('.c-sp').value = line.sale_price;
+    (line.adjustments || []).forEach(function (a) { addAdjustment(tr.querySelector('.c-adjs'), a); });
+
+    window.jQuery(productSelect).on('change', function () {
+      recalc();
+      if (!productSelect.value) return;
+      var url = suggestUrl + '?product=' + encodeURIComponent(productSelect.value) +
+        '&supplier=' + encodeURIComponent(supplierSelect ? supplierSelect.value : '');
+      fetch(url, { credentials: 'same-origin' })
+        .then(function (response) { return response.json(); })
+        .then(function (data) {
+          if (data.purchase_price != null) {
+            tr.querySelector('.c-pp').value = data.purchase_price;
+            tr.querySelector('.c-sp').value = data.sale_price;
+            recalc();
+          }
+        });
+    });
+    tr.querySelector('.c-add-adj').addEventListener('click', function () {
+      addAdjustment(tr.querySelector('.c-adjs'));
+    });
+    tr.querySelector('.c-remove').addEventListener('click', function () {
+      tr.remove();
+      recalc();
+    });
+    tr.addEventListener('input', recalc);
+    tr.addEventListener('change', recalc);
+    linesBody.appendChild(tr);
+    enableProductSearch(productSelect);
+  }
+
+  function adjustmentTotals(adjustments) {
+    var cost = 0, discount = 0;
+    adjustments.forEach(function (a) {
+      var type = typeById(a.type);
+      if (!type) return;
+      if (type.type === 'add') cost += number(a.amount); else discount += number(a.amount);
+    });
+    return { cost: cost, discount: discount };
+  }
+
+  function recalc() {
+    var subtotal = 0, cost = 0, discount = 0;
+    linesBody.querySelectorAll('tr.line').forEach(function (tr) {
+      var base = number(tr.querySelector('.c-qty').value) * number(tr.querySelector('.c-pp').value);
+      var adj = adjustmentTotals(readAdjustments(tr.querySelector('.c-adjs')));
+      tr.querySelector('.c-total').textContent = (base + adj.cost - adj.discount).toFixed(2);
+      subtotal += base;
+      cost += adj.cost;
+      discount += adj.discount;
+    });
+    var header = adjustmentTotals(readAdjustments(headerAdjs));
+    cost += header.cost;
+    discount += header.discount;
+    document.getElementById('t-subtotal').textContent = subtotal.toFixed(2);
+    document.getElementById('t-cost').textContent = cost.toFixed(2);
+    document.getElementById('t-discount').textContent = discount.toFixed(2);
+    document.getElementById('t-total').textContent = (subtotal + cost - discount).toFixed(2);
+  }
+
+  function collect() {
+    var lines = [];
+    linesBody.querySelectorAll('tr.line').forEach(function (tr) {
+      lines.push({
+        product: tr.querySelector('.c-product select').value,
+        quantity: tr.querySelector('.c-qty').value,
+        purchase_price: tr.querySelector('.c-pp').value,
+        sale_price: tr.querySelector('.c-sp').value,
+        adjustments: readAdjustments(tr.querySelector('.c-adjs')),
+      });
+    });
+    return { lines: lines, adjustments: readAdjustments(headerAdjs) };
+  }
+
+  document.getElementById('add-line').addEventListener('click', function () { addLine(); });
+  document.getElementById('add-header-adj').addEventListener('click', function () { addAdjustment(headerAdjs); });
+  document.getElementById('purchase-form').addEventListener('submit', function () {
+    document.getElementById('payload').value = JSON.stringify(collect());
+  });
+
+  (initial.lines || []).forEach(addLine);
+  (initial.adjustments || []).forEach(function (a) { addAdjustment(headerAdjs, a); });
+  if (!linesBody.children.length) addLine();
+  recalc();
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <h4 class="card-title">
+      {% if adjustment_type %}Edit Adjustment Type{% else %}Add Adjustment Type{% endif %}
+    </h4>
+    <form method="post" class="forms-sample" novalidate>
+      {% csrf_token %}
+      {% for field in form %}
+        <div class="form-group">
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% if field.errors %}
+            <div class="text-danger small">{{ field.errors|join:', ' }}</div>
+          {% endif %}
+        </div>
+      {% endfor %}
+      <button type="submit" class="btn btn-primary me-2">Save</button>
+      <a href="{% url 'purchase:adjustment_type_list' %}" class="btn btn-light">Cancel</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

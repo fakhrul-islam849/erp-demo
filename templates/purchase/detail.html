@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card mb-4">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h4 class="card-title mb-0">
+        Purchase #{{ purchase.pk }}
+        <span class="badge badge-{{ badge }}">{{ purchase.get_status_display }}</span>
+      </h4>
+      <div>
+        {% if editable %}
+        <a href="{% url 'purchase:purchase_edit' pk=purchase.pk %}" class="btn btn-primary btn-sm">
+          <i class="mdi mdi-pencil"></i> Edit
+        </a>
+        {% endif %}
+        {% if purchase.status != 'cancelled' and editable %}
+        <form method="post" action="{% url 'purchase:purchase_cancel' pk=purchase.pk %}" class="d-inline"
+              onsubmit="return confirm('Cancel this purchase? It will no longer affect the account balance.');">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-outline-danger btn-sm">Cancel purchase</button>
+        </form>
+        {% endif %}
+        <a href="{% url 'purchase:purchase_list' %}" class="btn btn-light btn-sm">Back</a>
+      </div>
+    </div>
+
+    {% if not editable and purchase.status != 'cancelled' %}
+    <div class="alert alert-info py-2">Stock from this purchase has been used, so it can no longer be edited or cancelled.</div>
+    {% endif %}
+
+    <div class="row">
+      <div class="col-md-4 mb-2"><strong>Date:</strong> {{ purchase.date|date:"Y-m-d" }}</div>
+      <div class="col-md-4 mb-2"><strong>Supplier:</strong> {{ purchase.supplier.name }}</div>
+      <div class="col-md-4 mb-2"><strong>Warehouse:</strong> {{ purchase.warehouse.name }}</div>
+      <div class="col-md-4 mb-2"><strong>Account:</strong> {{ purchase.account.name }} ({{ purchase.account.currency }})</div>
+      <div class="col-md-4 mb-2">
+        <strong>Invoice:</strong>
+        {% if purchase.invoice %}<a href="{{ purchase.invoice.url }}" target="_blank" rel="noopener">View file</a>{% else %}&mdash;{% endif %}
+      </div>
+      {% if purchase.note %}<div class="col-12 mb-2"><strong>Note:</strong> {{ purchase.note }}</div>{% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="card mb-4">
+  <div class="card-body">
+    <h5 class="card-title">Products</h5>
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th class="text-end">Qty</th>
+            <th class="text-end">Remaining</th>
+            <th class="text-end">Purchase price</th>
+            <th class="text-end">Cost</th>
+            <th class="text-end">Discount</th>
+            <th class="text-end">Landed cost</th>
+            <th class="text-end">Sale price</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for d in lots %}
+          <tr>
+            <td>
+              {{ d.product.name }}
+              {% for a in d.adjustments.all %}
+              <div class="small text-muted">{{ a.adjustment_type.name }}: {{ a.amount }}</div>
+              {% endfor %}
+            </td>
+            <td class="text-end">{{ d.quantity }}</td>
+            <td class="text-end">{{ d.remaining_quantity }}</td>
+            <td class="text-end">{{ d.purchase_price|floatformat:2 }}</td>
+            <td class="text-end">{{ d.cost }}</td>
+            <td class="text-end">{{ d.discount }}</td>
+            <td class="text-end">{{ d.landed_cost }}</td>
+            <td class="text-end">{{ d.sale_price }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-md-6">
+    <div class="card mb-4">
+      <div class="card-body">
+        <h5 class="card-title">Purchase adjustments</h5>
+        {% for a in header_adjustments %}
+        <div class="d-flex justify-content-between">
+          <span>{{ a.adjustment_type.name }} ({{ a.adjustment_type.get_type_display }})</span>
+          <span>{{ a.amount }}</span>
+        </div>
+        {% empty %}
+        <span class="text-muted">None</span>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card mb-4">
+      <div class="card-body">
+        <h5 class="card-title">Totals</h5>
+        <div class="d-flex justify-content-between"><span>Subtotal</span><span>{{ purchase.subtotal }}</span></div>
+        <div class="d-flex justify-content-between"><span>Cost</span><span>+ {{ purchase.total_cost }}</span></div>
+        <div class="d-flex justify-content-between"><span>Discount</span><span>- {{ purchase.total_discount }}</span></div>
+        <hr class="my-2">
+        <div class="d-flex justify-content-between"><strong>Total</strong><strong>{{ purchase.total_amount }} {{ purchase.account.currency }}</strong></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
