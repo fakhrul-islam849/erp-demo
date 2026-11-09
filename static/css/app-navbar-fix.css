@@ -1,0 +1,8 @@
+.navbar.fixed-top {
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+.page-body-wrapper {
+  padding-top: var(--navbar-height, 63px) !important;
+}

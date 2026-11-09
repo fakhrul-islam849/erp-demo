@@ -1,0 +1,165 @@
+{% load static %}
+<nav class="sidebar sidebar-offcanvas" id="sidebar">
+  <ul class="nav">
+    {% if request.user.user_type == 'employee' %}
+    <li class="nav-item nav-profile">
+      <div class="nav-link d-flex">
+        <div class="profile-image">
+          <img
+            src="{% if request.user.employee.photo %}{{ request.user.employee.photo.url }}{% endif %}"
+            alt="image"
+          />
+        </div>
+        <div class="profile-name">
+          <p class="name">
+            {{ request.user.get_full_name|default:request.user.username }}
+          </p>
+          <p class="designation">{{ request.user.employee.designation }}</p>
+        </div>
+      </div>
+    </li>
+    {% endif %}
+    {% if request.user.user_type == 'employee' %}
+    <li class="nav-item">
+      <a class="nav-link" href="{% url 'company_pad:pad_list' %}">
+        <i class="mdi mdi-file-document-outline menu-icon"></i>
+        <span class="menu-title">Pad</span>
+      </a>
+    </li>
+    {% endif %}
+    {% if request.user.user_type == 'admin' %}
+    <li class="nav-item">
+      <a class="nav-link" href="{% url 'employees:list' %}">
+        <i class="mdi mdi-account-group menu-icon"></i>
+        <span class="menu-title">Employees</span>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" data-bs-toggle="collapse" href="#company-menu" aria-expanded="false" aria-controls="company-menu">
+          <i class="mdi mdi-domain menu-icon"></i>
+          <span class="menu-title">Company</span>
+          <i class="menu-arrow"></i>
+      </a>
+      <div class="collapse" id="company-menu">
+          <ul class="nav flex-column sub-menu">
+              <li class="nav-item">
+                  <a class="nav-link" href="{% url 'company:detail' %}">Information</a>
+              </li>
+              <li class="nav-item">
+                  <a class="nav-link" href="{% url 'company_pad:pad_list' %}">Pad</a>
+              </li>
+              <li class="nav-item">
+                  <a class="nav-link" href="{% url 'company_pad:category_list' %}">Pad Category</a>
+              </li>
+          </ul>
+      </div>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" data-bs-toggle="collapse" href="#product-menu" aria-expanded="false" aria-controls="product-menu">
+        <i class="mdi mdi-cart-outline menu-icon"></i>
+        <span class="menu-title">Product</span>
+        <i class="menu-arrow"></i>
+    </a>
+    <div class="collapse" id="product-menu">
+        <ul class="nav flex-column sub-menu">
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'warehouse:list' %}">Warehouse</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'supplier:list' %}">Supplier</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'product:category_list' %}">Category</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'product:subcategory_list' %}">Sub-category</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'product:product_list' %}">Product</a>
+            </li>
+        </ul>
+    </div>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" data-bs-toggle="collapse" href="#purchase-menu" aria-expanded="false" aria-controls="purchase-menu">
+        <i class="mdi mdi-cash-multiple menu-icon"></i>
+        <span class="menu-title">Purchase</span>
+        <i class="menu-arrow"></i>
+    </a>
+    <div class="collapse" id="purchase-menu">
+        <ul class="nav flex-column sub-menu">
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'purchase:purchase_list' %}">Purchases</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'purchase:adjustment_type_list' %}">Adjustment Types</a>
+            </li>
+        </ul>
+    </div>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" href="{% url 'transfer:transfer_list' %}">
+        <i class="mdi mdi-swap-horizontal menu-icon"></i>
+        <span class="menu-title">Transfer</span>
+    </a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" data-bs-toggle="collapse" href="#sale-menu" aria-expanded="false" aria-controls="sale-menu">
+        <i class="mdi mdi-cart-outline menu-icon"></i>
+        <span class="menu-title">Sale</span>
+        <i class="menu-arrow"></i>
+    </a>
+    <div class="collapse" id="sale-menu">
+        <ul class="nav flex-column sub-menu">
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'sale:sale_list' %}">Sales</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'sale:adjustment_type_list' %}">Adjustment Types</a>
+            </li>
+        </ul>
+    </div>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" data-bs-toggle="collapse" href="#income-menu" aria-expanded="false" aria-controls="income-menu">
+        <i class="mdi mdi-cash-plus menu-icon"></i>
+        <span class="menu-title">Income</span>
+        <i class="menu-arrow"></i>
+    </a>
+    <div class="collapse" id="income-menu">
+        <ul class="nav flex-column sub-menu">
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'income:income_list' %}">Incomes</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'income:category_list' %}">Categories</a>
+            </li>
+        </ul>
+    </div>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" data-bs-toggle="collapse" href="#expense-menu" aria-expanded="false" aria-controls="expense-menu">
+        <i class="mdi mdi-cash-minus menu-icon"></i>
+        <span class="menu-title">Expense</span>
+        <i class="menu-arrow"></i>
+    </a>
+    <div class="collapse" id="expense-menu">
+        <ul class="nav flex-column sub-menu">
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'expense:expense_list' %}">Expenses</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'expense:category_list' %}">Categories</a>
+            </li>
+        </ul>
+    </div>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" href="{% url 'payment_account:list' %}">
+        <i class="mdi mdi-bank menu-icon"></i>
+        <span class="menu-title">Accounts</span>
+    </a>
+  </li>
+  {% endif %}
+  </ul>
+</nav>

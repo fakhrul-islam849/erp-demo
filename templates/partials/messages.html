@@ -1,0 +1,17 @@
+{% if messages %}
+<script>
+  $(function () {
+    {% for message in messages %}
+      $.toast({
+        text: '{{ message|escapejs }}',
+        icon: '{% if message.tags == "danger" %}error{% elif message.tags == "warning" %}warning{% elif message.tags == "success" %}success{% else %}info{% endif %}',
+        position: 'top-right',
+        showHideTransition: 'slide',
+        allowToastClose: true,
+        stack: 5,
+        hideAfter: {% if message.tags == "danger" %}false{% else %}5000{% endif %}
+      });
+    {% endfor %}
+  });
+</script>
+{% endif %}

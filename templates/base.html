@@ -1,0 +1,99 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no"
+    />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Demo Company Admin</title>
+    <!-- base:css -->
+    <link
+      rel="stylesheet"
+      href="{% static 'vendors/mdi/css/materialdesignicons.min.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'vendors/base/vendor.bundle.base.css' %}"
+    />
+    <!-- endinject -->
+    <!-- plugin css for this page -->
+    <!-- End plugin css for this page -->
+    <!-- inject:css -->
+    <link
+      rel="stylesheet"
+      href="{% static 'css/vertical-layout-light/style.css' %}"
+    />
+    <!-- endinject -->
+    <link
+      rel="stylesheet"
+      href="{% static 'vendors/jquery-toast-plugin/jquery.toast.min.css' %}"
+    />
+    <link rel="stylesheet" href="{% static 'css/app-toast-position.css' %}" />
+    <link rel="stylesheet" href="{% static 'css/app-navbar-fix.css' %}" />
+    <link rel="shortcut icon" href="{% static 'images/favicon.webp' %}" />
+    {% block extra_css %}{% endblock %}
+  </head>
+
+  <body class="sidebar-toggle-display sidebar-hidden">
+    <script>
+      (function () {
+        var body = document.body;
+        if (localStorage.getItem('sidebarHidden') === 'false') {
+          body.classList.remove('sidebar-hidden');
+        }
+        if (localStorage.getItem('sidebarIconOnly') === 'true') {
+          body.classList.add('sidebar-icon-only');
+        }
+      })();
+    </script>
+    <div class="container-scroller">
+      {% include 'partials/navbar.html' %}
+
+      <div class="container-fluid page-body-wrapper">
+        {% include 'partials/sidebar.html' %}
+
+        <div class="main-panel">
+          <div class="content-wrapper">
+            {% block content %}
+            {% endblock %}
+          </div>
+          <!-- content-wrapper ends -->
+
+          {% include 'partials/footer.html' %}
+        </div>
+        <!-- main-panel ends -->
+      </div>
+      <!-- page-body-wrapper ends -->
+    </div>
+    <!-- container-scroller -->
+
+    {% include 'partials/confirm_delete_modal.html' %}
+
+    <script src="{% static 'vendors/base/vendor.bundle.base.js' %}"></script>
+    <script src="{% static 'vendors/jquery-toast-plugin/jquery.toast.min.js' %}"></script>
+    {% include 'partials/messages.html' %}
+    <script src="{% static 'js/confirm-delete.js' %}"></script>
+    <script src="{% static 'js/off-canvas.js' %}"></script>
+    <script src="{% static 'js/hoverable-collapse.js' %}"></script>
+    <script src="{% static 'js/template.js' %}"></script>
+    <script src="{% static 'js/settings.js' %}"></script>
+    <script>
+      (function () {
+        function setNavbarHeightVar() {
+          var navbar = document.querySelector('nav.navbar');
+          if (navbar) {
+            document.documentElement.style.setProperty('--navbar-height', navbar.offsetHeight + 'px');
+          }
+        }
+        setNavbarHeightVar();
+        window.addEventListener('load', setNavbarHeightVar);
+        window.addEventListener('resize', setNavbarHeightVar);
+      })();
+    </script>
+    {% block extra_js %}{% endblock %}
+  </body>
+</html>

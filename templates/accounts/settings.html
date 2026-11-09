@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <h4 class="card-title">Account Settings</h4>
+    <div class="table-responsive">
+      <table class="table table-bordered">
+        <tr>
+          <th style="width: 220px;">Username</th>
+          <td>{{ request.user.username }}</td>
+        </tr>
+        <tr>
+          <th>First Name</th>
+          <td>{{ request.user.first_name|default:"—" }}</td>
+        </tr>
+        <tr>
+          <th>Last Name</th>
+          <td>{{ request.user.last_name|default:"—" }}</td>
+        </tr>
+        <tr>
+          <th>User Type</th>
+          <td>{{ request.user.get_user_type_display }}</td>
+        </tr>
+        <tr>
+          <th>Last IP</th>
+          <td>{{ request.user.last_ip|default:"—" }}</td>
+        </tr>
+        <tr>
+          <th>Last Device</th>
+          <td>{{ request.user.last_device|default:"—" }}</td>
+        </tr>
+        <tr>
+          <th>Last Login</th>
+          <td>{{ request.user.last_login|default:"—" }}</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <h4 class="card-title">Change Password</h4>
+    <form method="post" class="forms-sample" novalidate>
+      {% csrf_token %}
+      {% for field in form %}
+        <div class="form-group">
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% if field.help_text %}
+            <small class="form-text text-muted">{{ field.help_text|safe }}</small>
+          {% endif %}
+          {% if field.errors %}
+            <div class="text-danger small">{{ field.errors|join:', ' }}</div>
+          {% endif %}
+        </div>
+      {% endfor %}
+      <button type="submit" class="btn btn-primary">Change Password</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
